@@ -1,0 +1,33 @@
+{
+  "features_file": "<FEATURES_FILE>",
+  "metadata_file": "<METADATA_FILE>",
+  "output_dir": "<OUTPUT_DIR>",
+  "method": "sparse",
+  "latent_dim": 120,
+  "treewidth": 2,
+  "device": "auto",
+  "autoencoder_epochs": 100,
+  "autoencoder_batch_size": 128,
+  "outer_folds": 5,
+  "outer_seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "bootstrap_repeats": 10000,
+  "max_iterations": 500,
+  "retry_max_iterations": 2000,
+  "gradient_max_abs": 0.001,
+  "ppc_samples_per_class": 5000,
+  "targets": [
+    {
+      "key": "group_comparison",
+      "kind": "groups",
+      "column": "group",
+      "negative": "A",
+      "positive": "B"
+    }
+  ]
+}

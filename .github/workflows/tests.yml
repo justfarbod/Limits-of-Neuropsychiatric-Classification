@@ -1,0 +1,17 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install '.[test]'
+      - run: pytest -p no:cacheprovider --basetemp="$RUNNER_TEMP/maxent-tests"
+      - run: neuroimaging-maxent demo --output-dir "$RUNNER_TEMP/maxent-demo"

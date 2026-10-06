@@ -1,0 +1,49 @@
+# Methods
+
+## Representations
+
+The compact fold-specific autoencoder standardizes features using the training rows' population mean and standard deviation. Near-zero standard deviations are replaced by one. Its hidden width is `min(1024, max(128, 2*d))`; the encoder uses GELU and a bounded tanh latent layer, and the decoder mirrors the linear widths. Thresholding at zero gives hard −1/+1 activations for reconstruction and 0/1 states for MaxEnt. A straight-through estimator carries the gradient through thresholding. AdamW uses learning rate 0.001 and weight decay 0.00001, with 100 epochs and batches of 128 by default. All evaluation representations use the same training-fitted network.
+
+The historical staged source autoencoder has hidden widths 2048 and 512, ReLU, layer normalization, and encoder dropout 0.03. It uses soft pretraining followed by hard-binary fine-tuning, each up to 50 epochs, with training-objective early stopping. The two stages have different noise levels, tanh scales, learning rates, and regularization schedules. Correlation, binary, balance, and separation terms are retained in `autoencoders/config.py`. This architecture is available for descriptive source fitting and is not substituted into the compact empirical pipeline.
+
+Its historical standardizer computes float32 means and standard deviations and adds 0.000001 to each standard deviation. The compact pipeline instead computes training statistics with float64 accumulation and replaces near-zero deviations by one. Checkpoints retain the standardizer appropriate to their architecture.
+
+## Pairwise models
+
+For 0/1 states, energy is `−h·z − sum(J[i,j]*z[i]*z[j], i<j)`. The sparse model screens candidate dependencies using nodewise L1 logistic regression, starts with the Chow–Liu mutual-information tree, and permits screened extra edges only when its explicit decomposition remains within the requested width. A shared, label-blind topology is learned from pooled training states; class parameters are estimated separately by L-BFGS-B with weak L2 penalty 0.000001. Junction-tree calibration gives exact normalization, node/edge moments, likelihoods, and independent samples. Restricting interactions is a structural approximation, not approximate normalization. NumPy and optional Numba backends implement the same inference.
+
+The full-pairwise comparator enumerates all binary states. Its Torch float32 parameterization, symmetric zero-diagonal interaction matrix, Adam learning rate 0.01, 10,000-step limit, patience 300, and zero L1 penalty preserve the historical numerical routine. Exhaustive state probabilities and moments are normalized exactly up to floating-point error. Larger exhaustive models are rejected above 22 variables. The full-pairwise and sparse optimizers have different convergence diagnostics; an exhaustive fit does not fabricate an L-BFGS convergence flag.
+
+The ranking score is the positive-class log likelihood minus the negative-class log likelihood. A class-prior offset is included only when converting likelihood ratios into probabilities for Brier score and classification log loss. AUC uses the raw ranking score and gives half credit to ties.
+
+## Empirical evaluation
+
+Each outcome uses five independently seeded repeats of stratified five-fold cross-validation. The standardizer, autoencoder, topology, parameters, mean imputer, robust scaler, and classifier are fitted on the training split only. The SVC uses `C=1`, an RBF kernel, and `gamma=1/input_dimension`. Its four inputs are original connectivity, continuous latent activations, binary latent states, and connectivity decoded from binary states. The original-connectivity baseline bypasses the autoencoder and is common to all latent configurations with the same rows and splits.
+
+Sparse fits initially have a 500-iteration limit. A fit requires optimizer success, finite normalization and scores, and maximum absolute gradient at most 0.001. An invalid fit is retried once with 2,000 iterations, preserving its states, topology, settings, and seed. AUC never determines retry. Failed final fits remain diagnostic failures, and a complete empirical summary requires all final fits to pass. Initially valid folds retain their initial scores.
+
+Point estimates average held-out fold AUCs. Confidence intervals use 10,000 class-stratified participant bootstrap draws, keeping all repeated predictions for each resampled participant together. Bootstrap weights are reused across that participant's repeat/fold appearances. The models are not refitted in this bootstrap; intervals are conditional on fitted predictions.
+
+Adequacy checks compare held-out activation and all-pair co-activation probabilities with moments estimated from 5,000 independent model samples per class/fold. They include marginal correlation, RMSE, and fractions within empirical binomial standard errors, floored at `0.5/n`. Model-sampling and training uncertainty are not added to these descriptive error bars. Total-activity checks use Jensen–Shannon divergence (base 2) and Wasserstein distance. Held-out likelihood and empirical joint KL are separate diagnostics; marginal agreement does not establish complete joint agreement. Full-subset source reconstruction is descriptive, whereas classification uses fold-specific networks.
+
+## Configuration selection
+
+The sparse configuration grid contains 20, 40, and every 40 variables from 80 through 480, at treewidths 1–5. All configured binary outcomes share folds stratified by their joint label patterns. Both inner and outer partitions require every populated joint cell to contain enough observations. Inner scaling and autoencoders use inner-training rows; graphs use pooled inner-training states. A graph is shared across outcomes for a given candidate and fold.
+
+Candidates must pass numerical diagnostics in every inner fit. Selection uses the original 500-iteration fits without the empirical post hoc retry. Fit compares exact unary and selected-edge moments with held-out observations using Jeffreys binomial sampling standard errors. Unary and pairwise RMS values are averaged equally over classes, then over outcome/fold combinations. Higher fit scores mean smaller standardized errors. The fit standard error is calculated across those outcome/fold means. Candidate AUC uses pooled inner out-of-fold scores; per-fold AUC standard errors supply a fallback for paired participant bootstrap comparisons.
+
+Three rules are retained. `macro-auc` maximizes equally weighted outcome AUC. `balanced-one-se` seeks a common paired one-SE set across outcomes, then prioritizes marginal fit; without a common set it minimizes worst standardized task regret. `fit-first` keeps candidates within one SE of the best marginal fit, then maximizes macro AUC. Actual treewidth, parameter count, latent size, and key break remaining ties deterministically. No-winner status is retained if all candidates fail. The selected candidate is refitted on outer-training rows and evaluated on outer-test rows. A separate full-input inner selection provides supporting configuration evidence, distinct from outer evaluation and fixed-pipeline estimates. The code does not imply that selection preceded other analyses.
+
+## Fixed-source simulation
+
+`fit-source` learns a descriptive full-subset autoencoder and class models, or uses an explicit supplied checkpoint. `synthetic` loads a fixed source and interpolates its natural parameters as `theta(alpha)=theta(0)+alpha*(theta(1)−theta(0))`. The default grid steps by 0.1 from 0 to 2 and by 0.5 from 2.5 to 7. Five replicates contain 1,000 observations per class. Reference draws are shared across deformation values within a replicate. The source representation is fixed throughout simulation.
+
+Population oracle AUC is exhaustive and probability-weighted for the enumerated source; the sparse source uses ten Monte Carlo repeats of 20,000 independent draws per class. Identical distributions at zero deformation give AUC 0.5, including ties. Finite-sample oracle AUC uses the actual generated observations. SVC evaluation compares native binary states and decoded connectivity under common five-fold splits. The round-trip analysis decodes generated states, encodes them with the fixed source network, and refits class models and sparse topology inside each synthetic training fold. It does not retrain the fixed source network. Fit failures are flagged and are not treated as valid round-trip estimates. Intervals use Student's t across independent replicates or population Monte Carlo repeats, with scope recorded in each summary.
+
+These curves describe learnability under the supplied source distribution. They do not estimate a universal ceiling on human classification. Source models and every derived simulation output remain private external files.
+
+## Mechanical calculation
+
+Quadrature uses `U(x)=a*x²*(x²−h²)²` and `U_alpha(x)=U(x)−alpha*x`, with defaults `a=6`, `h=1`, `beta=1.5`. A 120,001-point grid spans −2.25 to 2.25. Normalized densities use shifted exponentials for stability. The likelihood ratio is monotone in x for positive deformation; AUC integrates the target density against the reference cumulative density. Zero deformation gives chance, and negative deformation reverses the ranking direction.
+
+Forward and reverse dimensionless excess work sum to the reciprocal quantity `beta*alpha*(mean_target−mean_reference)`. The output records the numerical identity residual. Well occupancies use moving stationary saddles, not fixed boundaries. Occupancies are undefined when the tilted potential lacks five stationary points inside the quadrature interval. This calculation is independent of empirical inputs or clinical calibration.

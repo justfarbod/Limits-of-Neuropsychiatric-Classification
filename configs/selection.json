@@ -1,0 +1,75 @@
+{
+  "features_file": "<FEATURES_FILE>",
+  "metadata_file": "<METADATA_FILE>",
+  "output_dir": "<OUTPUT_DIR>",
+  "method": "sparse",
+  "latent_dim": 120,
+  "treewidth": 1,
+  "device": "auto",
+  "autoencoder_epochs": 100,
+  "autoencoder_batch_size": 128,
+  "outer_folds": 5,
+  "outer_seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "bootstrap_repeats": 10000,
+  "max_iterations": 500,
+  "retry_max_iterations": 500,
+  "gradient_max_abs": 0.001,
+  "ppc_samples_per_class": 5000,
+  "targets": [
+    {
+      "key": "group_comparison",
+      "kind": "groups",
+      "column": "group",
+      "negative": "A",
+      "positive": "B"
+    },
+    {
+      "key": "binary_covariate",
+      "kind": "binary",
+      "column": "binary_covariate",
+      "negative": 0,
+      "positive": 1
+    },
+    {
+      "key": "continuous_threshold",
+      "kind": "threshold",
+      "column": "continuous_covariate",
+      "threshold": 0.0
+    }
+  ],
+  "latent_dims": [
+    20,
+    40,
+    80,
+    120,
+    160,
+    200,
+    240,
+    280,
+    320,
+    360,
+    400,
+    440,
+    480
+  ],
+  "treewidths": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "inner_folds": 5,
+  "selection_bootstrap_repeats": 2000,
+  "principles": [
+    "macro-auc",
+    "balanced-one-se",
+    "fit-first"
+  ]
+}
