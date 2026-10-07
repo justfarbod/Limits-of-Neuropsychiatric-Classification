@@ -78,6 +78,7 @@ def load_config(path: str | Path) -> dict:
         "autoencoder_checkpoint",
         "output_dir",
         "results_file",
+        "landmarks_file",
     ]:
         if key in result and result[key] is not None:
             result[key] = str(external_path(result[key]))

@@ -59,3 +59,28 @@ Configuration files themselves must be outside the repository. Relative configur
 Source models use a versioned numeric NPZ containing both classes' biases and symmetric interactions, method, selected edges, and a JSON decomposition certificate. Checkpoints contain an architecture tag, scalar settings, tensor weights, and scaling tensors. Checkpoints load with `weights_only=True`. Externally supplied models must follow these schemas; no original project directory is consulted. `fit-source` creates both files in the expected format. A supplied checkpoint's training scope remains the user's responsibility.
 
 Plots accept supplied CSV results. `plot_kind` can be `auc`, `profile`, or `marginals`. AUC tables need `outcome,method,auc` or `alpha,method,auc`; interval columns are optional. Profile plots compare supplied method columns with `maxent`. Marginal tables require `observed,modeled`. No empirical values or dataset labels are built into the figures.
+
+## Mechanical figure
+
+Use the external configuration fields in `configs/mechanical_figure.json`. `landmarks_file` points to another external JSON object with `landmarks` and optional `bands` lists. The default deformation grid is 151 equally spaced values from zero to 1.5; an explicit `alpha_values` list must increase strictly from zero and retain three wells throughout. The output stem is set by `figure_prefix`.
+
+Each landmark requires a unique `label` and an `auc` between chance and the largest AUC attainable on the configured range. Optional fields are `color`, `marker` (a Matplotlib marker string, default `o`), and `show_distribution` (default `false`). Select one or two landmarks with `show_distribution: true` for the potential, density, and occupancy annotations; the other landmarks appear only in the AUC panel. Colors can be `grey`, `rose`, `blue`, `purple`, or Matplotlib color specifications.
+
+Each band requires `label`, `lower`, and `upper`, with optional `color`. Bounds must satisfy `0.5 <= lower < upper <= 1`. These represent ranges across outcomes and are explicitly labeled as such. Do not supply confidence intervals as bands.
+
+Create the metadata outside the repository. For example, the following is a schema illustration; replace the text placeholders with your own labels and numeric values before running:
+
+```json
+{
+  "landmarks": [
+    {"label": "<COMPARISON_LABEL>", "auc": "<TARGET_AUC>",
+     "color": "rose", "show_distribution": true}
+  ],
+  "bands": [
+    {"label": "<RANGE_LABEL>", "lower": "<LOWER_AUC>",
+     "upper": "<UPPER_AUC>", "color": "rose"}
+  ]
+}
+```
+
+The figure command writes `<prefix>.png`, `<prefix>.pdf`, `<prefix>_curves.csv`, `<prefix>_landmarks.csv`, `<prefix>_densities.csv`, and `<prefix>_validation.json`. The curve table records AUC, its bound, well occupancies, Jeffreys divergence, and dimensionless work. The landmark table includes both requested and achieved AUCs and the solved tilts. The density table contains the reference and selected distributions. Inputs, metadata, and every output must be outside the repository.

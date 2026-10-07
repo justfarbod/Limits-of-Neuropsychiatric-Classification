@@ -122,6 +122,7 @@ def test_release_has_only_source_and_templates():
             "source_model",
             "autoencoder_checkpoint",
             "output_dir",
+            "landmarks_file",
         ]:
             if key in data:
                 assert data[key].startswith("<") and data[key].endswith(">")

@@ -1,0 +1,11 @@
+{
+  "output_dir": "<OUTPUT_DIR>",
+  "landmarks_file": "<LANDMARKS_FILE>",
+  "make_figure": true,
+  "figure_prefix": "mechanical_figure",
+  "a": 6.0,
+  "h": 1.0,
+  "beta": 1.5,
+  "bound": 2.25,
+  "points": 120001
+}
